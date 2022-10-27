@@ -1,0 +1,3 @@
+[submodule "external/ModUtils"]
+	path = external/ModUtils
+	url = https://github.com/CookiePLMonster/ModUtils
