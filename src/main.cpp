@@ -7,10 +7,32 @@
 namespace WidescreenFix
 {
     static float hFov;
+    static float* pWidth;
+    static float* pHeight;
+
+    static float aspectPrevious;
+    static float hFovPrevious_precalc;
+    static float hFovPrevious_postcalc;
+
 
     static void CalculateNew_hFov() {
-        // Calculation taken from https://www.purebasic.fr/english/viewtopic.php?t=37014
-        hFov = atan (tan ((hFov * M_PI) / 360.0) * (64.0/27.0)/1.777778)*360.0 / M_PI;
+        float aspect = *pWidth / *pHeight;
+
+        if (aspect > 1.777778) {
+            if (hFovPrevious_precalc == hFov && aspectPrevious == aspect) {
+                // caching to not have to calculate on each frame
+                hFov = hFovPrevious_postcalc;
+                return;
+            }
+
+            // for caching
+            hFovPrevious_precalc = hFov;
+            aspectPrevious = aspect;
+
+            // Calculation taken from https://www.purebasic.fr/english/viewtopic.php?t=37014
+            hFov = atan(tan((hFov * M_PI) / 360.0) * aspect / (16.0 / 9.0)) * 360.0 / M_PI;
+            hFovPrevious_postcalc = hFov;
+        }
     }
 }
 
@@ -22,16 +44,21 @@ void OnInitializeHook() {
 
     try {
         using namespace WidescreenFix;
-        auto ptn = pattern ("F3 0F 11 47 18 8B 83 00 02 00 00"); // 0x141E6C84F
+
+        auto resPattern = pattern ("48 8B 05 ? ? ? ? 89 41 18"); // 0x1415AF1DC
+        ReadOffsetValue(resPattern.get_first(3), pWidth);
+        pHeight = pWidth + 1;
+
+        auto cameraPattern = pattern ("F3 0F 11 47 18 8B 83 00 02 00 00"); // 0x141E6C84F
 
         // First, disable bConstrainAspectRatio
         // TODO: Re-enable this during FMV cutscenes
-        Patch<uint8_t>(ptn.get_first(26), 0);
+        Patch<uint8_t>(cameraPattern.get_first(26), 0);
 
-        Trampoline* trampoline = Trampoline::MakeTrampoline( ptn.get_first() );
+        Trampoline* trampoline = Trampoline::MakeTrampoline(cameraPattern.get_first() );
         auto calculateTrampoline = trampoline->Jump(CalculateNew_hFov);
 
-        auto jmpAddr = ptn.get_first(5);
+        auto jmpAddr = cameraPattern.get_first(5);
 
         const uint8_t shellcode[] = {
                 0xF3, 0x0F, 0x11, 0x47, 0x18, // movss, [rdi+18h], xmm0 - original instruction
@@ -52,7 +79,7 @@ void OnInitializeHook() {
         Patch( space + 5 + 3 + 9 + 5 + 1, &hFov );
         WriteOffsetValue( space + 5 + 3 + 9 + 5 + 9 + 3 + 1, jmpAddr);
 
-        InjectHook( ptn.get_first(), space, PATCH_JUMP );
+        InjectHook(cameraPattern.get_first(), space, PATCH_JUMP );
     }
     TXN_CATCH();
 }
