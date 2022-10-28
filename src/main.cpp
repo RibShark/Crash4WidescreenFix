@@ -45,9 +45,14 @@ void OnInitializeHook() {
     try {
         using namespace WidescreenFix;
 
-        auto resPattern = pattern ("48 8B 05 ? ? ? ? 89 41 18"); // 0x1415AF1DC
-        ReadOffsetValue(resPattern.get_first(3), pWidth);
+        auto resPattern = pattern ("C7 41 68 00 00 48 8B 05"); // 0x1415AF1DC
+        ReadOffsetValue(resPattern.get_first(8), pWidth);
         pHeight = pWidth + 1;
+    }
+    TXN_CATCH();
+
+    try {
+        using namespace WidescreenFix;
 
         auto cameraPattern = pattern ("F3 0F 11 47 18 8B 83 00 02 00 00"); // 0x141E6C84F
 
