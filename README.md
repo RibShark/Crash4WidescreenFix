@@ -1,7 +1,7 @@
 # Crash Bandicoot 4 - Widescreen Fix
 ## Description
 This is a small mod that allows _Crash Bandicoot 4: It's About Time_ to run at aspect ratios wider than 16:9. Unlike
-previous hex-editor based fixes, this correctly scales the field of view at all times for a perfect Fov+ widescreen
+previous hex-editor based fixes, this correctly scales the field of view at all times for a perfect Hor+ widescreen
 scale. Note that currently FMV cutscenes will be stretched rather than displayed at their correct aspect ratio, I plan
 to fix this sometime in the future.
 
